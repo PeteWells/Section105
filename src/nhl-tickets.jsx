@@ -215,7 +215,7 @@ export default function App() {
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             <div style={{ width: 36, height: 36, borderRadius: "50%", background: TEAM_COLOR, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>🏒</div>
             <div>
-              <div style={{ fontSize: 18, fontWeight: "bold", letterSpacing: 1, color: "#fff" }}>SECTION 101</div>
+              <div style={{ fontSize: 18, fontWeight: "bold", letterSpacing: 1, color: "#fff" }}>SECTION 105</div>
               <div style={{ fontSize: 11, color: ICE_BLUE, letterSpacing: 2, textTransform: "uppercase" }}>Season Ticket Group</div>
             </div>
           </div>
