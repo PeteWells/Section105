@@ -78,6 +78,7 @@ export default function App() {
   const [selectedGame, setSelectedGame] = useState(null);
   const [selectedMember, setSelectedMember] = useState(MEMBERS[0]);
   const [editingLimit, setEditingLimit] = useState(null); // member name being edited
+  const [pendingPick, setPendingPick] = useState(null); // game pending confirmation
 
   // How many games each member has drafted
   const draftCounts = useMemo(() => {
@@ -344,28 +345,36 @@ export default function App() {
               <div style={{ marginBottom: 32 }}>
                 <div style={{ fontSize: 12, letterSpacing: 3, textTransform: "uppercase", color: ICE_BLUE, marginBottom: 12, borderLeft: `3px solid ${TEAM_COLOR}`, paddingLeft: 10 }}>Available Games — Select One</div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                  {availableGames.map(game => (
-                    <button key={game.id} onClick={() => makeDraftPick(game.id)}
-                      style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 10, padding: "14px 18px", cursor: "pointer", textAlign: "left", color: "#E8EAF0", display: "flex", alignItems: "center", justifyContent: "space-between", transition: "all 0.15s", fontFamily: "inherit" }}
-                      onMouseEnter={e => { e.currentTarget.style.background = MEMBER_COLORS[currentPick.member] + "22"; e.currentTarget.style.borderColor = MEMBER_COLORS[currentPick.member]; }}
-                      onMouseLeave={e => { e.currentTarget.style.background = "rgba(255,255,255,0.04)"; e.currentTarget.style.borderColor = "rgba(255,255,255,0.12)"; }}
-                    >
-                      <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-                        <div style={{ textAlign: "center", minWidth: 44 }}>
-                          <div style={{ fontSize: 10, color: "#8891A8", textTransform: "uppercase" }}>{formatDate(game.date).split(",")[0]}</div>
-                          <div style={{ fontSize: 20, fontWeight: "bold", color: "#fff", lineHeight: 1 }}>{new Date(game.date + "T12:00:00").getDate()}</div>
-                        </div>
-                        <div>
-                          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                            <span style={{ fontSize: 10, padding: "2px 6px", borderRadius: 4, background: game.home ? "rgba(200,16,46,0.3)" : "rgba(255,255,255,0.08)", color: game.home ? "#FF6B7A" : "#8891A8", letterSpacing: 1, textTransform: "uppercase" }}>{game.home ? "HOME" : "AWAY"}</span>
-                            <span style={{ fontSize: 15, fontWeight: "bold" }}>{game.home ? "vs" : "@"} {game.opponent}</span>
+                  {availableGames.map(game => {
+                    const isPending = pendingPick?.id === game.id;
+                    return (
+                      <div key={game.id}
+                        style={{ background: isPending ? MEMBER_COLORS[currentPick.member] + "18" : "rgba(255,255,255,0.04)", border: `1px solid ${isPending ? MEMBER_COLORS[currentPick.member] : "rgba(255,255,255,0.12)"}`, borderRadius: 10, padding: "14px 18px", transition: "all 0.15s" }}
+                      >
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                            <div style={{ textAlign: "center", minWidth: 44 }}>
+                              <div style={{ fontSize: 10, color: "#8891A8", textTransform: "uppercase" }}>{formatDate(game.date).split(",")[0]}</div>
+                              <div style={{ fontSize: 20, fontWeight: "bold", color: "#fff", lineHeight: 1 }}>{new Date(game.date + "T12:00:00").getDate()}</div>
+                            </div>
+                            <div>
+                              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                                <span style={{ fontSize: 10, padding: "2px 6px", borderRadius: 4, background: game.home ? "rgba(200,16,46,0.3)" : "rgba(255,255,255,0.08)", color: game.home ? "#FF6B7A" : "#8891A8", letterSpacing: 1, textTransform: "uppercase" }}>{game.home ? "HOME" : "AWAY"}</span>
+                                <span style={{ fontSize: 15, fontWeight: "bold", color: "#E8EAF0" }}>{game.home ? "vs" : "@"} {game.opponent}</span>
+                              </div>
+                              <div style={{ fontSize: 12, color: "#8891A8" }}>{formatDate(game.date)} · {game.time}</div>
+                            </div>
                           </div>
-                          <div style={{ fontSize: 12, color: "#8891A8" }}>{formatDate(game.date)} · {game.time}</div>
+                          <button
+                            onClick={() => setPendingPick(isPending ? null : game)}
+                            style={{ padding: "7px 18px", borderRadius: 20, fontSize: 13, fontWeight: "bold", cursor: "pointer", fontFamily: "inherit", background: isPending ? MEMBER_COLORS[currentPick.member] : MEMBER_COLORS[currentPick.member] + "33", border: `1px solid ${MEMBER_COLORS[currentPick.member]}`, color: isPending ? "#fff" : MEMBER_COLORS[currentPick.member], transition: "all 0.15s" }}
+                          >
+                            {isPending ? "Selected ✓" : "Pick ›"}
+                          </button>
                         </div>
                       </div>
-                      <div style={{ padding: "6px 16px", borderRadius: 20, fontSize: 13, fontWeight: "bold", background: MEMBER_COLORS[currentPick.member] + "33", border: `1px solid ${MEMBER_COLORS[currentPick.member]}`, color: MEMBER_COLORS[currentPick.member] }}>Pick ›</div>
-                    </button>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             )}
@@ -547,14 +556,24 @@ export default function App() {
               const lim = limits[selectedMember];
               return (
                 <div>
-                  <div style={{ background: `${color}18`, border: `1px solid ${color}44`, borderRadius: 14, padding: "20px 24px", marginBottom: 20, display: "flex", gap: 32, flexWrap: "wrap" }}>
+                  <div style={{ background: `${color}18`, border: `1px solid ${color}44`, borderRadius: 14, padding: "20px 24px", marginBottom: 20, display: "flex", gap: 32, flexWrap: "wrap", alignItems: "center" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
                       <div style={{ width: 52, height: 52, borderRadius: "50%", background: color + "33", border: `3px solid ${color}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, fontWeight: "bold", color }}>{selectedMember[0]}</div>
                       <div>
                         <div style={{ fontSize: 22, fontWeight: "bold" }}>{selectedMember}</div>
-                        <div style={{ fontSize: 13, color: "#8891A8" }}>
-                          {lim !== null ? `Limit: ${lim} game${lim !== 1 ? "s" : ""}` : "No limit set"}
-                          {isAtLimit(selectedMember) && <span style={{ marginLeft: 8, color: "#4ADE80" }}>· Limit reached ✓</span>}
+                        <div style={{ fontSize: 13, color: "#8891A8", display: "flex", alignItems: "center", gap: 8, marginTop: 4 }}>
+                          <span>Game limit:</span>
+                          <input
+                            type="number"
+                            min="0"
+                            max={GAMES.length}
+                            value={lim ?? ""}
+                            placeholder="∞"
+                            onChange={e => setLimit(selectedMember, e.target.value === "" ? null : e.target.value)}
+                            style={{ width: 52, background: "rgba(255,255,255,0.08)", border: `1px solid ${color}66`, borderRadius: 6, color: "#fff", fontSize: 13, padding: "3px 6px", outline: "none", fontFamily: "inherit", textAlign: "center" }}
+                          />
+                          {lim !== null && <button onClick={() => setLimit(selectedMember, null)} style={{ background: "none", border: "none", color: "#555", cursor: "pointer", fontSize: 12, padding: 0 }}>clear</button>}
+                          {isAtLimit(selectedMember) && <span style={{ color: "#4ADE80" }}>· Limit reached ✓</span>}
                         </div>
                       </div>
                     </div>
@@ -590,6 +609,45 @@ export default function App() {
           </div>
         )}
       </div>
+
+      {/* CONFIRMATION MODAL */}
+      {pendingPick && currentPick && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", zIndex: 200, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}
+          onClick={() => setPendingPick(null)}
+        >
+          <div style={{ background: STEEL, border: `2px solid ${MEMBER_COLORS[currentPick.member]}`, borderRadius: 16, padding: "32px 36px", maxWidth: 400, width: "100%", boxShadow: `0 0 40px ${MEMBER_COLORS[currentPick.member]}44` }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div style={{ fontSize: 13, color: "#8891A8", textTransform: "uppercase", letterSpacing: 2, marginBottom: 16 }}>Confirm Pick</div>
+            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 24 }}>
+              <div style={{ width: 44, height: 44, borderRadius: "50%", background: MEMBER_COLORS[currentPick.member] + "33", border: `2px solid ${MEMBER_COLORS[currentPick.member]}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, fontWeight: "bold", color: MEMBER_COLORS[currentPick.member], flexShrink: 0 }}>
+                {currentPick.member[0]}
+              </div>
+              <div>
+                <div style={{ fontSize: 15, color: "#aaa" }}><strong style={{ color: MEMBER_COLORS[currentPick.member] }}>{currentPick.member}</strong> is claiming</div>
+                <div style={{ fontSize: 21, fontWeight: "bold", color: "#fff", marginTop: 2 }}>
+                  {pendingPick.home ? "vs" : "@"} {pendingPick.opponent}
+                </div>
+                <div style={{ fontSize: 13, color: "#8891A8", marginTop: 2 }}>{formatDate(pendingPick.date)} · {pendingPick.time}</div>
+              </div>
+            </div>
+            <div style={{ display: "flex", gap: 12 }}>
+              <button
+                onClick={() => { makeDraftPick(pendingPick.id); setPendingPick(null); }}
+                style={{ flex: 1, padding: "13px", borderRadius: 10, cursor: "pointer", fontFamily: "inherit", fontSize: 15, fontWeight: "bold", background: MEMBER_COLORS[currentPick.member], border: "none", color: "#fff" }}
+              >
+                Yes, claim it
+              </button>
+              <button
+                onClick={() => setPendingPick(null)}
+                style={{ flex: 1, padding: "13px", borderRadius: 10, cursor: "pointer", fontFamily: "inherit", fontSize: 15, fontWeight: "bold", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.15)", color: "#aaa" }}
+              >
+                No, go back
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
