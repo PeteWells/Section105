@@ -79,6 +79,7 @@ export default function App() {
   const [selectedMember, setSelectedMember] = useState(MEMBERS[0]);
   const [editingLimit, setEditingLimit] = useState(null); // member name being edited
   const [pendingPick, setPendingPick] = useState(null); // game pending confirmation
+  const [pendingRelease, setPendingRelease] = useState(null); // { game, member } pending release confirmation
 
   // How many games each member has drafted
   const draftCounts = useMemo(() => {
@@ -171,7 +172,30 @@ export default function App() {
     });
   };
 
-  const setLimit = (member, value) => {
+  const releaseGame = (game, member) => {
+    const wasDrafted = draftClaims[game.id] === member;
+    if (wasDrafted) {
+      // Remove from draft claims — game returns to available pool
+      setDraftClaims(prev => {
+        const n = { ...prev };
+        delete n[game.id];
+        return n;
+      });
+      // If draft was marked complete, reopen it
+      setDraftComplete(false);
+    } else {
+      // Remove all open seat claims for this game by this member
+      setOpenClaims(prev => {
+        const n = { ...prev };
+        game.seats.forEach(s => {
+          const key = claimKey(game.id, s);
+          if (n[key] === member) delete n[key];
+        });
+        return n;
+      });
+    }
+    setPendingRelease(null);
+  };
     setLimits(prev => ({ ...prev, [member]: value === "" || value === null ? null : Math.max(0, Number(value)) }));
     setEditingLimit(null);
   };
@@ -215,7 +239,7 @@ export default function App() {
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             <div style={{ width: 36, height: 36, borderRadius: "50%", background: TEAM_COLOR, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>🏒</div>
             <div>
-              <div style={{ fontSize: 18, fontWeight: "bold", letterSpacing: 1, color: "#fff" }}>SECTION 105</div>
+              <div style={{ fontSize: 18, fontWeight: "bold", letterSpacing: 1, color: "#fff" }}>SECTION 101</div>
               <div style={{ fontSize: 11, color: ICE_BLUE, letterSpacing: 2, textTransform: "uppercase" }}>Season Ticket Group</div>
             </div>
           </div>
@@ -595,8 +619,16 @@ export default function App() {
                               <div style={{ fontWeight: "bold", fontSize: 14 }}>{game.home ? "vs" : "@"} {game.opponent}</div>
                               <div style={{ fontSize: 12, color: "#8891A8" }}>{formatDate(game.date)} · {game.time}{wasDrafted && <span style={{ marginLeft: 8, color: "#4ADE80" }}>· drafted</span>}</div>
                             </div>
-                            <div style={{ display: "flex", gap: 6 }}>
-                              {mySeats.map(s => <span key={s} style={{ padding: "3px 10px", borderRadius: 12, fontSize: 12, background: color + "33", border: `1px solid ${color}`, color }}>{s}</span>)}
+                            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                              <div style={{ display: "flex", gap: 6 }}>
+                                {mySeats.map(s => <span key={s} style={{ padding: "3px 10px", borderRadius: 12, fontSize: 12, background: color + "33", border: `1px solid ${color}`, color }}>{s}</span>)}
+                              </div>
+                              <button
+                                onClick={() => setPendingRelease({ game, member: selectedMember })}
+                                style={{ padding: "4px 12px", borderRadius: 8, cursor: "pointer", fontFamily: "inherit", fontSize: 12, background: "rgba(255,60,60,0.1)", border: "1px solid rgba(255,60,60,0.3)", color: "#FF6B7A" }}
+                              >
+                                Release
+                              </button>
                             </div>
                           </div>
                         );
@@ -640,6 +672,47 @@ export default function App() {
               </button>
               <button
                 onClick={() => setPendingPick(null)}
+                style={{ flex: 1, padding: "13px", borderRadius: 10, cursor: "pointer", fontFamily: "inherit", fontSize: 15, fontWeight: "bold", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.15)", color: "#aaa" }}
+              >
+                No, go back
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* RELEASE CONFIRMATION MODAL */}
+      {pendingRelease && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", zIndex: 200, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}
+          onClick={() => setPendingRelease(null)}
+        >
+          <div style={{ background: STEEL, border: "2px solid rgba(255,60,60,0.5)", borderRadius: 16, padding: "32px 36px", maxWidth: 400, width: "100%", boxShadow: "0 0 40px rgba(255,60,60,0.2)" }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div style={{ fontSize: 13, color: "#8891A8", textTransform: "uppercase", letterSpacing: 2, marginBottom: 16 }}>Release Game</div>
+            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 24 }}>
+              <div style={{ width: 44, height: 44, borderRadius: "50%", background: MEMBER_COLORS[pendingRelease.member] + "33", border: `2px solid ${MEMBER_COLORS[pendingRelease.member]}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, fontWeight: "bold", color: MEMBER_COLORS[pendingRelease.member], flexShrink: 0 }}>
+                {pendingRelease.member[0]}
+              </div>
+              <div>
+                <div style={{ fontSize: 15, color: "#aaa" }}>Release <strong style={{ color: MEMBER_COLORS[pendingRelease.member] }}>{pendingRelease.member}</strong>'s claim on</div>
+                <div style={{ fontSize: 21, fontWeight: "bold", color: "#fff", marginTop: 2 }}>
+                  {pendingRelease.game.home ? "vs" : "@"} {pendingRelease.game.opponent}
+                </div>
+                <div style={{ fontSize: 13, color: "#8891A8", marginTop: 2 }}>{formatDate(pendingRelease.game.date)} · {pendingRelease.game.time}</div>
+                <div style={{ fontSize: 12, color: "#FF6B7A", marginTop: 6 }}>
+                  This will free up the game and reduce their count.
+                </div>
+              </div>
+            </div>
+            <div style={{ display: "flex", gap: 12 }}>
+              <button
+                onClick={() => releaseGame(pendingRelease.game, pendingRelease.member)}
+                style={{ flex: 1, padding: "13px", borderRadius: 10, cursor: "pointer", fontFamily: "inherit", fontSize: 15, fontWeight: "bold", background: "rgba(255,60,60,0.2)", border: "1px solid rgba(255,60,60,0.5)", color: "#FF6B7A" }}
+              >
+                Yes, release it
+              </button>
+              <button
+                onClick={() => setPendingRelease(null)}
                 style={{ flex: 1, padding: "13px", borderRadius: 10, cursor: "pointer", fontFamily: "inherit", fontSize: 15, fontWeight: "bold", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.15)", color: "#aaa" }}
               >
                 No, go back
