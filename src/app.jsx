@@ -196,6 +196,8 @@ export default function App() {
     }
     setPendingRelease(null);
   };
+
+  const setLimit = (member, value) => {
     setLimits(prev => ({ ...prev, [member]: value === "" || value === null ? null : Math.max(0, Number(value)) }));
     setEditingLimit(null);
   };
